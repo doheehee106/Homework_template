@@ -285,7 +285,6 @@ function drawFishBowl() {
 
   //어항 머리
   fill("#b8e3f0");
-  fill("#");
   noStroke();
   rect(width * 0.25, height * 0.36, 100, 35);
 
