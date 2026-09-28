@@ -21,9 +21,8 @@ let margin = 30;
 let moveRight = 50;
 
 function setup() {
-  let canvas = createCanvas(560, 960);
-  canvas.style("width", "448px");
-  canvas.style("height", "768px");
+  createCanvas(560, 960);
+
   rectMode(CENTER);
   noStroke();
 
