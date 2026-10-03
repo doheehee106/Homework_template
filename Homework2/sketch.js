@@ -1,13 +1,15 @@
 let fishes = [];
 let bird = null;
+let seaweeds = [];
+let seaweedTime = 0;
 
 function setup() {
   createCanvas(1000, 800);
   rectMode(CENTER);
   noStroke();
 
-  // 물은 화면 아래쪽 3/5
   fishes = [];
+  seaweeds = [];
 
   let fishSettings = [
     { size: 54 - 10, color: "#e34720", speed: 5.4 },
@@ -19,22 +21,38 @@ function setup() {
   ];
 
   for (let setting of fishSettings) {
-    // 물 안에서만 생성: 물의 윗선부터 바닥 가까이까지
     let waterTop = height * 0.4;
     let x = random(setting.size * 1.5, width - setting.size * 1.5);
     let y = random(waterTop + setting.size, height - setting.size);
 
     fishes.push(new Fish(x, y, setting.size, setting.color, setting.speed));
   }
+
+  // 바닥에 다시마 만들기
+  for (let i = 0; i < 9; i++) {
+    seaweeds.push({
+      x: 35 + (i * (width - 70)) / 8,
+      height: random(100, 220),
+      phase: random(TWO_PI),
+      sway: random(8, 22),
+      speed: random(0.015, 0.035),
+    });
+  }
 }
 
 function draw() {
-  // 하늘색 배경
   background("#d9f3ff");
 
-  // 화면 아래쪽 3/5를 파란 물로 채움
+  // 화면 아래쪽 3/5를 물로 채움
   fill("#53b9e8");
   rect(width / 2, height * 0.7, width, height * 0.6);
+
+  // 다시마를 물고기 뒤에 그림
+  seaweedTime += 1;
+
+  for (let seaweed of seaweeds) {
+    drawSeaweed(seaweed);
+  }
 
   for (let f of fishes) {
     if (!f.taken) {
@@ -64,7 +82,6 @@ class Fish {
     this.size = size;
     this.fishColor = fishColor;
     this.speed = speed;
-    this.angle = 0;
     this.taken = false;
   }
 
@@ -75,14 +92,16 @@ class Fish {
     if (this.x > width - this.size * 1.5 || this.x < this.size * 1.5) {
       this.speed *= -1;
     }
-
-    this.angle = this.speed < 0 ? PI : 0;
   }
 
   display() {
     push();
     translate(this.x, this.y);
-    rotate(this.angle);
+
+    // 진행 방향에 맞춰 좌우로만 반전
+    if (this.speed < 0) {
+      scale(-1, 1);
+    }
 
     fill(this.fishColor);
     ellipse(0, 0, this.size * 2, this.size * 1.3);
@@ -100,7 +119,7 @@ class Fish {
     pop();
   }
 }
-//새 생성자
+
 class Bird {
   constructor(fish) {
     this.fish = fish;
@@ -114,16 +133,17 @@ class Bird {
   }
 
   update() {
+    // 날개를 파닥이게 움직임
     this.wingAngle += 0.12 * this.wingDirection;
 
-    if (this.wingAngle > 0.5 || this.wingAngle < -0.5) {
+    if (this.wingAngle > 0.45 || this.wingAngle < -0.45) {
       this.wingDirection *= -1;
     }
+
     if (this.state === "chasing") {
-      // 매 프레임 물고기의 현재 위치를 따라감
+      // 움직이는 물고기의 현재 위치를 따라감
       let dx = this.fish.x - this.x;
       let dy = this.fish.y - this.y;
-
       let distance = sqrt(dx * dx + dy * dy);
 
       if (distance > 1) {
@@ -152,9 +172,10 @@ class Bird {
     push();
     translate(this.x, this.y);
 
-    // 갈매기 몸과 날개
+    // 갈매기 몸
     fill("#ffffff");
     ellipse(0, 0, 90, 42);
+
     // 왼쪽 날개
     push();
     rotate(this.wingAngle);
@@ -166,12 +187,13 @@ class Bird {
     rotate(-this.wingAngle);
     triangle(15, -5, 65, -38, 42, 8);
     pop();
+
     // 부리
     fill("#f2a900");
     triangle(38, 0, 62, 8, 38, 14);
     pop();
 
-    // 잡힌 물고기를 새 아래에 그리기
+    // 잡힌 물고기를 새 아래에 그림
     if (this.state === "flyingAway") {
       this.fish.display();
     }
@@ -193,4 +215,23 @@ function mousePressed() {
       break;
     }
   }
+}
+
+function drawSeaweed(seaweed) {
+  stroke("#16866a");
+  strokeWeight(7);
+  noFill();
+
+  beginShape();
+
+  for (let y = 0; y <= seaweed.height; y += 10) {
+    let sway =
+      sin(seaweedTime * seaweed.speed + seaweed.phase + y * 0.025) *
+      seaweed.sway;
+
+    vertex(seaweed.x + sway, height - y);
+  }
+
+  endShape();
+  noStroke();
 }
