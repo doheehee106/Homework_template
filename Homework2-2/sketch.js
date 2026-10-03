@@ -1,5 +1,7 @@
 let fishes = [];
 let firstX = 0;
+let waterOffset = 0;
+let waterFlow = 0;
 
 function setup() {
   createCanvas(1000, 800);
@@ -10,35 +12,77 @@ function setup() {
   createFishGroup();
 }
 
-function createFishGroup() {
-  let fishSettings = [
-    { size: 54 - 10, color: "#e34720", speed: 5.4 },
-    { size: 39 - 10, color: "#f9783d", speed: 2.3 },
-    { size: 69 - 10, color: "#ff6601", speed: 4.1 },
-    { size: 48 - 10, color: "#f4a62a", speed: 2.6 },
-    { size: 60 - 10, color: "#e85d75", speed: 2.4 },
-    { size: 33 - 10, color: "#ffb347", speed: 3.1 },
+function createFishGroup(direction = 0) {
+  let fishColors = [
+    "#e34720",
+    "#f9783d",
+    "#ff6601",
+    "#f4a62a",
+    "#e85d75",
+    "#ffb347",
+    "#8a5bd1",
+    "#37a6a0",
+    "#ef476f",
+    "#ffd166",
+    "#06d6a0",
+    "#118ab2",
+    "#073b4c",
+    "#9b5de5",
+    "#f15bb5",
+    "#00f5d4",
+    "#ff70a6",
+    "#70d6ff",
+    "#e9ff70",
+    "#ff9770",
+    "#845ec2",
+    "#4d96ff",
+    "#c34a36",
+    "#6bcb77",
+    "#f9f871",
   ];
 
-  for (let setting of fishSettings) {
-    let waterTop = height * 0.4;
-    let x = random(setting.size * 1.5, width - setting.size * 1.5);
-    let y = random(waterTop + setting.size, height - setting.size);
+  for (let i = 0; i < 6; i++) {
+    let size = random(23, 48);
 
-    fishes.push(new Fish(x, y, setting.size, setting.color, setting.speed));
+    // 이번 무리에서 아직 사용하지 않은 색을 선택
+    let colorIndex = Math.floor(random(fishColors.length));
+    let fishColor = fishColors.splice(colorIndex, 1)[0];
+
+    let speed = random(2, 5);
+
+    // 물결의 가장 낮은 부분보다 아래에서 물고기 생성
+    let waterTop = height * 0.4 + 48;
+    let x;
+    let y = random(waterTop + size, height - size);
+
+    if (direction > 0) {
+      // 오른쪽으로 쓸면 왼쪽 화면 밖에서 오른쪽으로 들어옴
+      x = -size * 2 - i * 40;
+    } else if (direction < 0) {
+      // 왼쪽으로 쓸면 오른쪽 화면 밖에서 왼쪽으로 들어옴
+      x = width + size * 2 + i * 40;
+      speed *= -1;
+    } else {
+      // 스케치 시작 때는 물속 랜덤 위치에서 시작
+      x = random(size * 1.5, width - size * 1.5);
+      speed *= random() < 0.5 ? -1 : 1;
+    }
+
+    let fish = new Fish(x, y, size, fishColor, speed);
+    fish.entering = direction !== 0;
+    fishes.push(fish);
   }
 }
 
 function draw() {
   background("#d9f3ff");
 
-  // 화면 아래쪽 3/5를 물로 채움
-  fill("#53b9e8");
-  rect(width / 2, height * 0.7, width, height * 0.6);
+  // 물결 모양의 물
+  drawWater();
 
   drawSeaweed();
 
-  // 물고기 움직이기, 그리고 화면 밖에 나간 물고기 삭제하기
+  // 물고기 이동 및 화면 밖으로 나간 물고기 삭제
   for (let i = fishes.length - 1; i >= 0; i--) {
     let f = fishes[i];
 
@@ -53,8 +97,39 @@ function draw() {
   }
 }
 
+function drawWater() {
+  let surfaceY = height * 0.4;
+  let waveHeight = 48;
+  let waveLength = 320;
+
+  // 물결이 쓸기 방향으로 움직임
+  waterOffset += waterFlow;
+
+  if (waterOffset > waveLength) {
+    waterOffset -= waveLength;
+  } else if (waterOffset < -waveLength) {
+    waterOffset += waveLength;
+  }
+
+  noStroke();
+  fill("#53b9e8");
+
+  beginShape();
+  vertex(0, height);
+
+  // 물의 윗 경계를 물결 모양으로 그림
+  for (let x = 0; x <= width; x += 10) {
+    let y =
+      surfaceY + sin(((x - waterOffset) / waveLength) * TWO_PI) * waveHeight;
+
+    vertex(x, y);
+  }
+
+  vertex(width, height);
+  endShape(CLOSE);
+}
+
 function mousePressed() {
-  // 쓸기 시작한 가로 위치 저장
   firstX = mouseX;
 }
 
@@ -66,10 +141,18 @@ function mouseReleased() {
     return;
   }
 
-  // 쓸기 거리가 길수록 물살이 강해짐
-  let currentSpeed = map(abs(dx), 25, width, 4, 18);
   let direction = dx > 0 ? 1 : -1;
+  let currentSpeed = map(abs(dx), 25, width, 4, 18);
 
+  waterFlow = direction * map(abs(dx), 25, width, 1, 4);
+
+  // 물고기가 모두 사라졌으면 새 무리를 화면 밖에서 들어오게 생성
+  if (fishes.length === 0) {
+    createFishGroup(direction);
+    return;
+  }
+
+  // 남아 있는 물고기들을 쓸기 방향으로 보냄
   for (let f of fishes) {
     f.swept = true;
     f.currentSpeed = currentSpeed * direction;

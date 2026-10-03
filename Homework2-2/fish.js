@@ -13,9 +13,23 @@ class Fish {
     this.swept = false;
     this.currentSpeed = 0;
     this.death = false;
+    this.entering = false;
   }
 
   move() {
+    if (this.entering) {
+      this.x += this.speed;
+
+      let edge = this.size * 1.5;
+
+      if (this.speed > 0 && this.x >= edge) {
+        this.entering = false;
+      } else if (this.speed < 0 && this.x <= width - edge) {
+        this.entering = false;
+      }
+
+      return;
+    }
     // 쓸린 물고기는 쓸기 방향으로 계속 이동
     if (this.swept) {
       this.x += this.currentSpeed;
